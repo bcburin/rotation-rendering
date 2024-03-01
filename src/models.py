@@ -3,10 +3,10 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TextIO
 
+import numpy as np
 from numpy import matrix, array
 
-from src.rendering import Drawable, AnimationMaker
-from src.utils import rotation_matrix
+from src.rendering import Drawable
 
 
 @dataclass
@@ -20,7 +20,13 @@ class Point(Drawable):
     
     def __sub__(self, other: Point) -> Point:
         return Point(self.x - other.x, self.y - other.y, self.z - other.z)
-    
+
+    def __truediv__(self, other: float) -> Point:
+        return Point(self.x/other, self.y/other, self.z/other)
+
+    def __mul__(self, other: float):
+        return Point(self.x*other, self.y*other, self.z*other)
+
     def as_array(self) -> array:
         return array([self.x, self.y, self.z])
     
@@ -28,7 +34,7 @@ class Point(Drawable):
     def from_array(a: array | matrix) -> Point:
         if isinstance(a, matrix):
             a = array(a)[0]
-        return Point(a[0], a[1], a[2])
+        return Point(a[0].item(), a[1].item(), a[2].item())
     
     def draw(self, file: TextIO):
         file.write('point\n')
@@ -50,28 +56,51 @@ class Polygon(Drawable):
     vertices: list[Point]
 
     def draw(self, file: TextIO):
-        edges = [Edge(self.vertices[i], self.vertices[i + 1 % len(self.vertices)]) 
-                 for i in range(self.vertices)]
+        edges = [Edge(self.vertices[i], self.vertices[(i + 1) % len(self.vertices)])
+                 for i in range(len(self.vertices))]
         for edge in edges:
             edge.draw(file)
+
+    def get_normal_vector(self, ref: Point | None = None):
+        a, b, c = self.vertices[0], self.vertices[1], self.vertices[2]
+        v1, v2 = a-b, c-b
+        n = np.array(np.cross(v1.as_array(), v2.as_array()))
+        # normalize vector
+        n = n / np.sqrt(np.sum(n**2))
+        # the code below compares the normal found with the distance between a reference
+        # point and one of the vertices, and tries to follow the same direction (dot product > 0)
+        if ref is not None and np.dot(n, (b-ref).as_array()) < 0:
+            n = -n
+        return n
+
+    def get_barycenter(self) -> Point:
+        s = Point(0, 0, 0)
+        for v in self.vertices:
+            s = s + v
+        return s / len(self.vertices)
 
 
 class Cube(Drawable):
 
-    def __init__(self, length: float, center: Point = Point(0, 0, 0), transparent: bool = True) -> None:
-        l = length
-        self._l = l
+    def __init__(
+            self, length: float, center: Point = Point(0, 0, 0), focus: Point | None = None,
+            transparent: bool = False) -> None:
+        self._l = length
         self._c = center
-        # initialize vertices
+        self._focus = focus
+        self._transparent = transparent
+        self._init_vertices(center, length)
+
+    def _init_vertices(self, center, l):
         self._v = {
-            1: center + Point(l/2, l/2, l/2),
-            2: center + Point(l/2, l/2, -l/2),
-            3: center + Point(l/2, -l/2, -l/2),
-            4: center + Point(l/2, -l/2, l/2),
-            5: center + Point(-l/2, l/2, l/2),
-            6: center + Point(-l/2, l/2, -l/2),
-            7: center + Point(-l/2, -l/2, -l/2),
-            8: center + Point(-l/2, -l/2, l/2),
+            1: center + Point(l / 2, l / 2, l / 2),
+            2: center + Point(l / 2, l / 2, -l / 2),
+            3: center + Point(l / 2, -l / 2, -l / 2),
+            4: center + Point(l / 2, -l / 2, l / 2),
+            5: center + Point(-l / 2, l / 2, l / 2),
+            6: center + Point(-l / 2, l / 2, -l / 2),
+            7: center + Point(-l / 2, -l / 2, -l / 2),
+            8: center + Point(-l / 2, -l / 2, l / 2),
         }
 
     def get_edges(self) -> list[Edge]:
@@ -92,12 +121,12 @@ class Cube(Drawable):
     
     def get_faces(self) -> list[Polygon]:
         return [
-            Polygon(self._v[1], self._v[2], self._v[3], self._v[4]),
-            Polygon(self._v[5], self._v[6], self._v[7], self._v[8]),
-            Polygon(self._v[1], self._v[2], self._v[6], self._v[5]),
-            Polygon(self._v[2], self._v[6], self._v[7], self._v[3]),
-            Polygon(self._v[3], self._v[7], self._v[8], self._v[4]),
-            Polygon(self._v[1], self._v[5], self._v[8], self._v[4]),
+            Polygon([self._v[1], self._v[2], self._v[3], self._v[4]]),
+            Polygon([self._v[8], self._v[7], self._v[6], self._v[5]]),
+            Polygon([self._v[5], self._v[6], self._v[2], self._v[1]]),
+            Polygon([self._v[2], self._v[6], self._v[7], self._v[3]]),
+            Polygon([self._v[3], self._v[7], self._v[8], self._v[4]]),
+            Polygon([self._v[4], self._v[8], self._v[5], self._v[1]]),
         ]
     
     def rotate(self, A: matrix):
@@ -105,18 +134,15 @@ class Cube(Drawable):
             self._v[index] = Point.from_array(A @ vertex.as_array())
 
     def draw(self, file: TextIO):
-        for edge in self.get_edges():
-            edge.draw(file=file)
+        if self._transparent:
+            for edge in self.get_edges():
+                edge.draw(file=file)
+        else:
+            for face in self.get_faces():
+                n = face.get_normal_vector(ref=self._c)
+                if self._focus is None:
+                    raise ValueError('Opaque representations require a focus.')
+                a = face.get_barycenter()
+                if np.dot((self._focus-a).as_array(), n) > 0:
+                    face.draw(file=file)
 
-
-def draw_rotating_cube_animation(name: str, axis: array, w: float, delay: float = 3e-2, n: int = 1000,
-                                 show_axis: bool = False):
-    am = AnimationMaker(name, delay)
-    cube = Cube(length=1)
-    axis_repr = Edge(Point.from_array(-axis), Point.from_array(axis))
-    for _ in range(n):
-        if show_axis:
-            am.add(axis_repr)
-        am.add(cube)
-        am.commit()
-        cube.rotate(A=rotation_matrix(theta=w * delay, u=axis))
