@@ -60,7 +60,7 @@ class AnimationMaker:
 
     def delay(self):
         self._output.write('delay\n')
-        self._output.write(f'{self.delay}\n')
+        self._output.write(f'{self._config.delay}\n')
 
     def clear(self):
         self._output.write('clrscr\n')

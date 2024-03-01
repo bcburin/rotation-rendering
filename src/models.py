@@ -159,6 +159,7 @@ class Cube(Drawable):
     def rotate(self, rm: matrix):
         for index, vertex in self._v.items():
             self._v[index] = Point.from_array(rm @ vertex.as_array())
+        self._c = Point.from_array(rm @ self._c.as_array())
 
     def draw(self, config: DrawConfig):
         if config.transparent:
