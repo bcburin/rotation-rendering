@@ -19,6 +19,7 @@ def create_parser():
     parser.add_argument('--delay', '-d', help='delay between frames in seconds', default=3e-2)
     parser.add_argument('--out', '-o', help='output file name', default=None)
     parser.add_argument('--focus', '-f', help='focal distance in the z axis', default=None)
+    parser.add_argument('--duration', help='duration of animation in seconds', default=20)
     parser.add_argument('--cube-length', help='length of the side of the cube', default=1)
     parser.add_argument('--transparent', help='renders parts out of sight from focus', action='store_true')
     parser.add_argument('--perspective', help='enables perspective view from focus', action='store_true')
@@ -56,8 +57,9 @@ def main():
         transparent=args.transparent, perspective=args.perspective)
     # rotation animation configurations
     animation_config = RotationAnimationConfig(
-        delay=float(args.delay), n_iterations=500, draw_config=draw_config,
-        axis=u, w=w, show_axis=args.show_axis
+        delay=float(args.delay),
+        n_iterations=int(float(args.duration) / float(args.delay)),
+        draw_config=draw_config, axis=u, w=w, show_axis=args.show_axis
     )
     # create rotation animation
     draw_rotating_cube_animation(cube_length=args.cube_length, config=animation_config)
