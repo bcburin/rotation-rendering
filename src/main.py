@@ -24,14 +24,17 @@ def create_parser():
     parser.add_argument('--transparent', help='renders parts out of sight from focus', action='store_true')
     parser.add_argument('--perspective', help='enables perspective view from focus', action='store_true')
     parser.add_argument('--show-axis', help='show axis of rotation', action='store_true')
+    parser.add_argument('--cube-center-x', '--cx', help='initial x coordinate of cube center', default=0)
+    parser.add_argument('--cube-center-y', '--cy', help='initial y coordinate of cube center', default=0)
+    parser.add_argument('--cube-center-z', '--cz', help='initial z coordinate of cube center', default=0)
     return parser
 
 
-def draw_rotating_cube_animation(cube_length: float, config: RotationAnimationConfig):
+def draw_rotating_cube_animation(cube_length: float, cube_center: Point, config: RotationAnimationConfig):
     am = AnimationMaker(config=config)
     # build models
     axis_edge = Edge(Point.from_array(-config.axis), Point.from_array(config.axis))
-    cube = Cube(length=cube_length)
+    cube = Cube(length=cube_length, center=cube_center)
     # iterate frames
     for _ in range(config.n_iterations):
         if config.show_axis:
@@ -62,7 +65,10 @@ def main():
         draw_config=draw_config, axis=u, w=w, show_axis=args.show_axis
     )
     # create rotation animation
-    draw_rotating_cube_animation(cube_length=args.cube_length, config=animation_config)
+    draw_rotating_cube_animation(
+        cube_length=args.cube_length,
+        cube_center=Point(float(args.cube_center_x), float(args.cube_center_y), float(args.cube_center_z)),
+        config=animation_config)
 
 
 if __name__ == '__main__':
