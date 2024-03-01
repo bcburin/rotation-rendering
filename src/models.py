@@ -26,6 +26,12 @@ class Point(Drawable):
     def __mul__(self, other: float):
         return Point(self.x*other, self.y*other, self.z*other)
 
+    def __eq__(self, other: Point):
+        return self.x == other.x and self.y == other.y and self.z == other.z
+
+    def __hash__(self):
+        return hash(self.x) ^ hash(self.y) ^ hash(self.z)
+
     def length(self):
         return np.sqrt(sum(self.as_array()**2))
 
@@ -57,6 +63,13 @@ class Edge(Drawable):
     point_a: Point
     point_b: Point
 
+    def __eq__(self, other: Edge):
+        return ((self.point_a == other.point_a and self.point_b == other.point_b) or
+                (self.point_a == other.point_b and self.point_b == other.point_a))
+
+    def __hash__(self):
+        return hash(self.point_a) ^ hash(self.point_b)
+
     def draw(self, config: DrawConfig):
         config.output.write('line\n')
         if not config.perspective:
@@ -71,10 +84,12 @@ class Edge(Drawable):
 class Polygon(Drawable):
     vertices: list[Point]
 
+    def get_edges(self) -> list[Edge]:
+        return [Edge(self.vertices[i], self.vertices[(i + 1) % len(self.vertices)])
+                for i in range(len(self.vertices))]
+
     def draw(self, config: DrawConfig):
-        edges = [Edge(self.vertices[i], self.vertices[(i + 1) % len(self.vertices)])
-                 for i in range(len(self.vertices))]
-        for edge in edges:
+        for edge in self.get_edges():
             edge.draw(config)
 
     def get_normal_vector(self, ref: Point | None = None):
@@ -150,9 +165,15 @@ class Cube(Drawable):
             for edge in self.get_edges():
                 edge.draw(config)
         else:
+            drawn_edges: set[Edge] = set()
             for face in self.get_faces():
                 n = face.get_normal_vector(ref=self._c)
                 g = face.get_barycenter()
                 los = Point(0, 0, config.focus) - g
                 if np.dot(los.as_array(), n) > 0:
-                    face.draw(config)
+                    face_edges = face.get_edges()
+                    for edge in face_edges:
+                        if edge in drawn_edges:
+                            continue
+                        edge.draw(config)
+                        drawn_edges.add(edge)
