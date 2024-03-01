@@ -27,6 +27,9 @@ class Point(Drawable):
     def __mul__(self, other: float):
         return Point(self.x*other, self.y*other, self.z*other)
 
+    def length(self):
+        return np.sqrt(sum(self.as_array()**2))
+
     def as_array(self) -> array:
         return array([self.x, self.y, self.z])
     
@@ -35,10 +38,19 @@ class Point(Drawable):
         if isinstance(a, matrix):
             a = array(a)[0]
         return Point(a[0].item(), a[1].item(), a[2].item())
+
+    def add_perspective(self, focus: float) -> Point:
+        return Point(focus * self.x / (focus - self.z), focus * self.y / (focus - self.z), 0)
     
-    def draw(self, file: TextIO):
+    def draw(self, file: TextIO, focus: float | None = None, transparent: bool = False, perspective: bool = False):
+        if self.z == focus:
+            return
         file.write('point\n')
-        file.write(f'{self.x} {self.z}\n')
+        if not perspective:
+            file.write(f'{self.x} {self.y}\n')
+        else:
+            p = self.add_perspective(focus)
+            file.write(f'{p.x} {p.y}')
 
 
 @dataclass
@@ -46,25 +58,30 @@ class Edge(Drawable):
     point_a: Point
     point_b: Point
 
-    def draw(self, file: TextIO):
+    def draw(self, file: TextIO, focus: float | None = None, transparent: bool = False, perspective: bool = False):
         file.write('line\n')
-        file.write(f'{self.point_a.x} {self.point_a.y} {self.point_b.x} {self.point_b.y}\n')
+        if not perspective:
+            file.write(f'{self.point_a.x} {self.point_a.y} {self.point_b.x} {self.point_b.y}\n')
+        else:
+            p_a = self.point_a.add_perspective(focus)
+            p_b = self.point_b.add_perspective(focus)
+            file.write(f'{p_a.x} {p_a.y} {p_b.x} {p_b.y}\n')
 
 
 @dataclass
 class Polygon(Drawable):
     vertices: list[Point]
 
-    def draw(self, file: TextIO):
+    def draw(self, file: TextIO, focus: float | None = None, transparent: bool = False, perspective: bool = False):
         edges = [Edge(self.vertices[i], self.vertices[(i + 1) % len(self.vertices)])
                  for i in range(len(self.vertices))]
         for edge in edges:
-            edge.draw(file)
+            edge.draw(file, focus, transparent, perspective)
 
     def get_normal_vector(self, ref: Point | None = None):
         a, b, c = self.vertices[0], self.vertices[1], self.vertices[2]
         v1, v2 = a-b, c-b
-        n = np.array(np.cross(v1.as_array(), v2.as_array()))
+        n = np.cross(v1.as_array(), v2.as_array())
         # normalize vector
         n = n / np.sqrt(np.sum(n**2))
         # the code below compares the normal found with the distance between a reference
@@ -82,13 +99,9 @@ class Polygon(Drawable):
 
 class Cube(Drawable):
 
-    def __init__(
-            self, length: float, center: Point = Point(0, 0, 0), focus: Point | None = None,
-            transparent: bool = False) -> None:
+    def __init__(self, length: float, center: Point = Point(0, 0, 0)) -> None:
         self._l = length
         self._c = center
-        self._focus = focus
-        self._transparent = transparent
         self._init_vertices(center, length)
 
     def _init_vertices(self, center, l):
@@ -133,16 +146,14 @@ class Cube(Drawable):
         for index, vertex in self._v.items():
             self._v[index] = Point.from_array(A @ vertex.as_array())
 
-    def draw(self, file: TextIO):
-        if self._transparent:
+    def draw(self, file: TextIO, focus: float | None = None, transparent: bool = False, perspective: bool = False):
+        if transparent:
             for edge in self.get_edges():
-                edge.draw(file=file)
+                edge.draw(file, focus, transparent, perspective)
         else:
             for face in self.get_faces():
                 n = face.get_normal_vector(ref=self._c)
-                if self._focus is None:
-                    raise ValueError('Opaque representations require a focus.')
                 a = face.get_barycenter()
-                if np.dot((self._focus-a).as_array(), n) > 0:
-                    face.draw(file=file)
+                if np.dot((Point(0, 0, focus)-a).as_array(), n) > 0:
+                    face.draw(file, focus, transparent, perspective)
 
