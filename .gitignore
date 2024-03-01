@@ -161,3 +161,6 @@ cython_debug/
 
 # Others
 .~lock*
+
+# Graphic interpreter files
+*cube*.txt
