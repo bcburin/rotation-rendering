@@ -6,8 +6,8 @@ from math import pi
 from numpy import array
 
 from src.models import Cube, Edge, Point
-from src.rendering import AnimationMaker
-from src.utils import rotation_matrix
+from src.rendering import AnimationMaker, DrawConfig, RotationAnimationConfig
+from src.utils import rotation_matrix, get_default_output_name
 
 
 def create_parser():
@@ -26,41 +26,41 @@ def create_parser():
     return parser
 
 
-def draw_rotating_cube_animation(
-        name: str, cube_length: float, axis: array, w: float, delay: float = 3e-2, n: int = 500,
-        show_axis: bool = False, focus: float = None, transparent: bool = False, perspective: bool = False):
-    am = AnimationMaker(name, delay, focus, transparent, perspective)
+def draw_rotating_cube_animation(cube_length: float, config: RotationAnimationConfig):
+    am = AnimationMaker(config=config)
+    # build models
+    axis_edge = Edge(Point.from_array(-config.axis), Point.from_array(config.axis))
     cube = Cube(length=cube_length)
-    axis_repr = Edge(Point.from_array(-axis), Point.from_array(axis))
-    for _ in range(n):
-        if show_axis:
-            am.add(axis_repr)
+    # iterate frames
+    for _ in range(config.n_iterations):
+        if config.show_axis:
+            am.add(axis_edge)
         am.add(cube)
         am.commit()
-        cube.rotate(A=rotation_matrix(theta=w * delay, u=axis))
+        cube.rotate(rotation_matrix(theta=config.w * config.delay, u=config.axis))
     am.end()
 
 
 def main():
+    # parse arguments
     parser = create_parser()
     args = parser.parse_args()
-    # axis vector
-    u = (array([int(args.ux), int(args.uy), int(args.uz)])
-         if float(args.ux).is_integer() and float(args.uy).is_integer() and float(args.uz).is_integer()
-         else array([float(args.ux), float(args.uy), float(args.uz)]))
-    # angular velocity
+    # axis vector and angular velocity
+    u = array([float(args.ux), float(args.uy), float(args.uz)])
     w = 2*pi / float(args.period)
-    if not args.perspective:
-        args.focus = float(args.cube_length) * 1000
-    elif args.focus is None:
-        args.focus = float(args.cube_length) + 2
-    name = (args.out
-            if args.out is not None
-            else f'{"perspective_" if args.perspective else ""}{"transparent" if args.transparent else "opaque"}_'
-                 f'cube_axis_{"_".join([str(i) for i in u])}.txt')
-    draw_rotating_cube_animation(
-        name=name, cube_length=float(args.cube_length), axis=u, w=w, delay=args.delay,
-        show_axis=args.show_axis, focus=float(args.focus), transparent=args.transparent, perspective=args.perspective)
+    # draw configurations
+    draw_config = DrawConfig(
+        output_name=args.out or get_default_output_name(args, u),
+        focus=float(args.cube_length) * 1000 if not args.perspective
+        else float(args.focus) or float(args.cube_length) + 2,
+        transparent=args.transparent, perspective=args.perspective)
+    # rotation animation configurations
+    animation_config = RotationAnimationConfig(
+        delay=float(args.delay), n_iterations=500, draw_config=draw_config,
+        axis=u, w=w, show_axis=args.show_axis
+    )
+    # create rotation animation
+    draw_rotating_cube_animation(cube_length=args.cube_length, config=animation_config)
 
 
 if __name__ == '__main__':

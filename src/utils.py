@@ -25,3 +25,13 @@ def rotation_matrix(theta: float, u: array) -> matrix:
             cos(theta) + (u[2]**2)*(1-cos(theta))
         ]
     ])
+
+
+def get_default_output_name(args, u: array):
+    name = ""
+    name += "perspective_" if args.perspective else ""
+    name += "transparent" if args.transparent else "opaque"
+    name += "_cube_axis_"
+    name += "_".join([str(int(i)) if i.is_integer() else str(i) for i in u])
+    name += ".txt"
+    return name

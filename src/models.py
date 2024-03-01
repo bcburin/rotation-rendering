@@ -1,12 +1,11 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TextIO
 
 import numpy as np
 from numpy import matrix, array
 
-from src.rendering import Drawable
+from src.rendering import Drawable, DrawConfig
 
 
 @dataclass
@@ -42,15 +41,15 @@ class Point(Drawable):
     def add_perspective(self, focus: float) -> Point:
         return Point(focus * self.x / (focus - self.z), focus * self.y / (focus - self.z), 0)
     
-    def draw(self, file: TextIO, focus: float | None = None, transparent: bool = False, perspective: bool = False):
-        if self.z == focus:
+    def draw(self, config: DrawConfig):
+        if self.z == config.focus:
             return
-        file.write('point\n')
-        if not perspective:
-            file.write(f'{self.x} {self.y}\n')
+        config.output.write('point\n')
+        if not config.perspective:
+            config.output.write(f'{self.x} {self.y}\n')
         else:
-            p = self.add_perspective(focus)
-            file.write(f'{p.x} {p.y}')
+            p = self.add_perspective(config.focus)
+            config.output.write(f'{p.x} {p.y}')
 
 
 @dataclass
@@ -58,25 +57,25 @@ class Edge(Drawable):
     point_a: Point
     point_b: Point
 
-    def draw(self, file: TextIO, focus: float | None = None, transparent: bool = False, perspective: bool = False):
-        file.write('line\n')
-        if not perspective:
-            file.write(f'{self.point_a.x} {self.point_a.y} {self.point_b.x} {self.point_b.y}\n')
+    def draw(self, config: DrawConfig):
+        config.output.write('line\n')
+        if not config.perspective:
+            config.output.write(f'{self.point_a.x} {self.point_a.y} {self.point_b.x} {self.point_b.y}\n')
         else:
-            p_a = self.point_a.add_perspective(focus)
-            p_b = self.point_b.add_perspective(focus)
-            file.write(f'{p_a.x} {p_a.y} {p_b.x} {p_b.y}\n')
+            p_a = self.point_a.add_perspective(config.focus)
+            p_b = self.point_b.add_perspective(config.focus)
+            config.output.write(f'{p_a.x} {p_a.y} {p_b.x} {p_b.y}\n')
 
 
 @dataclass
 class Polygon(Drawable):
     vertices: list[Point]
 
-    def draw(self, file: TextIO, focus: float | None = None, transparent: bool = False, perspective: bool = False):
+    def draw(self, config: DrawConfig):
         edges = [Edge(self.vertices[i], self.vertices[(i + 1) % len(self.vertices)])
                  for i in range(len(self.vertices))]
         for edge in edges:
-            edge.draw(file, focus, transparent, perspective)
+            edge.draw(config)
 
     def get_normal_vector(self, ref: Point | None = None):
         a, b, c = self.vertices[0], self.vertices[1], self.vertices[2]
@@ -142,18 +141,18 @@ class Cube(Drawable):
             Polygon([self._v[4], self._v[8], self._v[5], self._v[1]]),
         ]
     
-    def rotate(self, A: matrix):
+    def rotate(self, rm: matrix):
         for index, vertex in self._v.items():
-            self._v[index] = Point.from_array(A @ vertex.as_array())
+            self._v[index] = Point.from_array(rm @ vertex.as_array())
 
-    def draw(self, file: TextIO, focus: float | None = None, transparent: bool = False, perspective: bool = False):
-        if transparent:
+    def draw(self, config: DrawConfig):
+        if config.transparent:
             for edge in self.get_edges():
-                edge.draw(file, focus, transparent, perspective)
+                edge.draw(config)
         else:
             for face in self.get_faces():
                 n = face.get_normal_vector(ref=self._c)
-                a = face.get_barycenter()
-                if np.dot((Point(0, 0, focus)-a).as_array(), n) > 0:
-                    face.draw(file, focus, transparent, perspective)
-
+                g = face.get_barycenter()
+                los = Point(0, 0, config.focus) - g
+                if np.dot(los.as_array(), n) > 0:
+                    face.draw(config)
