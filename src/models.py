@@ -6,6 +6,7 @@ import numpy as np
 from numpy import matrix, array
 
 from src.rendering import Drawable, DrawConfig
+from src.utils import rotation_matrix
 
 
 @dataclass
@@ -156,7 +157,8 @@ class Cube(Drawable):
             Polygon([self._v[4], self._v[8], self._v[5], self._v[1]]),
         ]
     
-    def rotate(self, rm: matrix):
+    def rotate(self, theta: float, axis: array):
+        rm = rotation_matrix(theta=theta, u=axis)
         for index, vertex in self._v.items():
             self._v[index] = Point.from_array(rm @ vertex.as_array())
         self._c = Point.from_array(rm @ self._c.as_array())

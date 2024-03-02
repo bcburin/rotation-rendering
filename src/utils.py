@@ -3,12 +3,12 @@ from __future__ import annotations
 from math import cos, sin
 
 import numpy as np
-from numpy import array, matrix
+from numpy import array
 
 
-def rotation_matrix(theta: float, u: array) -> matrix:
+def rotation_matrix(theta: float, u: array) -> array:
     u = u / np.sqrt(np.sum(u**2))
-    return matrix([
+    return array([
         [
             cos(theta) + (u[0]**2)*(1-cos(theta)),
             u[0]*u[1]*(1-cos(theta)) - u[2]*sin(theta),

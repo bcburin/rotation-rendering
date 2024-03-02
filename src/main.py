@@ -7,7 +7,7 @@ from numpy import array
 
 from src.models import Cube, Edge, Point
 from src.rendering import AnimationMaker, DrawConfig, RotationAnimationConfig
-from src.utils import rotation_matrix, get_default_output_name
+from src.utils import  get_default_output_name
 
 
 def create_parser():
@@ -37,7 +37,7 @@ def create_parser():
 def draw_single_frame_rotated_cube_animation(cube_length: float, cube_center: Point, config: RotationAnimationConfig):
     am = AnimationMaker(config=config)
     cube = Cube(length=cube_length, center=cube_center)
-    cube.rotate(rotation_matrix(theta=config.initial_angle, u=config.axis))
+    cube.rotate(theta=config.initial_angle, axis=config.axis)
     am.add(cube)
     am.commit()
     am.delay(time=config.duration)
@@ -50,14 +50,14 @@ def draw_rotating_cube_animation(cube_length: float, cube_center: Point, config:
     axis_edge = Edge(Point.from_array(-config.axis), Point.from_array(config.axis))
     cube = Cube(length=cube_length, center=cube_center)
     if config.initial_angle != 0:
-        cube.rotate(rotation_matrix(theta=config.initial_angle, u=config.axis))
+        cube.rotate(theta=config.initial_angle, axis=config.axis)
     # iterate frames
     for _ in range(int(config.duration / config.delay)):
         if config.show_axis:
             am.add(axis_edge)
         am.add(cube)
         am.frame()
-        cube.rotate(rotation_matrix(theta=config.w * config.delay, u=config.axis))
+        cube.rotate(theta=config.w * config.delay, axis=config.axis)
     am.end()
 
 
