@@ -29,6 +29,7 @@ def rotation_matrix(theta: float, u: array) -> matrix:
 
 def get_default_output_name(args, u: array):
     name = ""
+    name += "sf_" if args.single_frame else ""
     name += "perspective_" if args.perspective else ""
     name += "transparent" if args.transparent else "opaque"
     name += "_cube_axis_"

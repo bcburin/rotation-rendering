@@ -27,7 +27,21 @@ def create_parser():
     parser.add_argument('--cube-center-x', '--cx', help='initial x coordinate of cube center', default=0)
     parser.add_argument('--cube-center-y', '--cy', help='initial y coordinate of cube center', default=0)
     parser.add_argument('--cube-center-z', '--cz', help='initial z coordinate of cube center', default=0)
+    parser.add_argument(
+        '--initial-angle', help='initial angle of rotation (in degrees)', default=0)
+    parser.add_argument(
+        '--single-frame', help='make a single frame animation of a rotated cube', action='store_true')
     return parser
+
+
+def draw_single_frame_rotated_cube_animation(cube_length: float, cube_center: Point, config: RotationAnimationConfig):
+    am = AnimationMaker(config=config)
+    cube = Cube(length=cube_length, center=cube_center)
+    cube.rotate(rotation_matrix(theta=config.initial_angle, u=config.axis))
+    am.add(cube)
+    am.commit()
+    am.delay(time=config.duration)
+    am.end()
 
 
 def draw_rotating_cube_animation(cube_length: float, cube_center: Point, config: RotationAnimationConfig):
@@ -35,12 +49,14 @@ def draw_rotating_cube_animation(cube_length: float, cube_center: Point, config:
     # build models
     axis_edge = Edge(Point.from_array(-config.axis), Point.from_array(config.axis))
     cube = Cube(length=cube_length, center=cube_center)
+    if config.initial_angle != 0:
+        cube.rotate(rotation_matrix(theta=config.initial_angle, u=config.axis))
     # iterate frames
-    for _ in range(config.n_iterations):
+    for _ in range(int(config.duration / config.delay)):
         if config.show_axis:
             am.add(axis_edge)
         am.add(cube)
-        am.commit()
+        am.frame()
         cube.rotate(rotation_matrix(theta=config.w * config.delay, u=config.axis))
     am.end()
 
@@ -60,15 +76,20 @@ def main():
         transparent=args.transparent, perspective=args.perspective)
     # rotation animation configurations
     animation_config = RotationAnimationConfig(
-        delay=float(args.delay),
-        n_iterations=int(float(args.duration) / float(args.delay)),
-        draw_config=draw_config, axis=u, w=w, show_axis=args.show_axis
+        delay=float(args.delay), duration=float(args.duration),
+        draw_config=draw_config, axis=u, w=w, show_axis=args.show_axis,
+        initial_angle=pi * float(args.initial_angle) / 180
     )
     # create rotation animation
-    draw_rotating_cube_animation(
-        cube_length=args.cube_length,
-        cube_center=Point(float(args.cube_center_x), float(args.cube_center_y), float(args.cube_center_z)),
-        config=animation_config)
+    kwargs = {
+        'cube_length': args.cube_length,
+        'cube_center': Point(float(args.cube_center_x), float(args.cube_center_y), float(args.cube_center_z)),
+        'config': animation_config
+    }
+    if args.single_frame:
+        draw_single_frame_rotated_cube_animation(**kwargs)
+    else:
+        draw_rotating_cube_animation(**kwargs)
 
 
 if __name__ == '__main__':

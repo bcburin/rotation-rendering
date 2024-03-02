@@ -26,7 +26,7 @@ class Drawable(ABC):
 @dataclass
 class AnimationConfig:
     delay: float
-    n_iterations: int
+    duration: float
     draw_config: DrawConfig
 
 
@@ -34,6 +34,7 @@ class AnimationConfig:
 class RotationAnimationConfig(AnimationConfig):
     axis: array
     w: float  # angular velocity
+    initial_angle: float
     show_axis: bool = False
 
 
@@ -55,12 +56,15 @@ class AnimationMaker:
     def commit(self):
         for item in self._buffer:
             item.draw(config=self._config.draw_config)
+
+    def frame(self):
+        self.commit()
         self.delay()
         self.clear()
 
-    def delay(self):
+    def delay(self, time: float | None = None):
         self._output.write('delay\n')
-        self._output.write(f'{self._config.delay}\n')
+        self._output.write(f'{self._config.delay if time is None else time}\n')
 
     def clear(self):
         self._output.write('clrscr\n')
