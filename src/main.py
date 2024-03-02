@@ -57,7 +57,7 @@ def draw_rotating_cube_animation(cube_length: float, cube_center: Point, config:
             am.add(axis_edge)
         am.add(cube)
         am.frame()
-        cube.rotate(theta=config.w * config.delay(), axis=config.axis)
+        cube.rotate(theta=config.w * config.delay, axis=config.axis)
     am.end()
 
 
