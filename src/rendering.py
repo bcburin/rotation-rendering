@@ -25,9 +25,13 @@ class Drawable(ABC):
 
 @dataclass
 class AnimationConfig:
-    delay: float
+    fps: float
     duration: float
     draw_config: DrawConfig
+
+    @property
+    def delay(self):
+        return self.fps ** (-1)
 
 
 @dataclass
@@ -64,7 +68,7 @@ class AnimationMaker:
 
     def delay(self, time: float | None = None):
         self._output.write('delay\n')
-        self._output.write(f'{self._config.delay if time is None else time}\n')
+        self._output.write(f'{1 / self._config.fps if time is None else time}\n')
 
     def clear(self):
         self._output.write('clrscr\n')

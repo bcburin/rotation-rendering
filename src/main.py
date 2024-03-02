@@ -7,7 +7,7 @@ from numpy import array
 
 from src.models import Cube, Edge, Point
 from src.rendering import AnimationMaker, DrawConfig, RotationAnimationConfig
-from src.utils import  get_default_output_name
+from src.utils import get_default_output_name
 
 
 def create_parser():
@@ -16,10 +16,10 @@ def create_parser():
     parser.add_argument('uy', help='y component of rotation axis')
     parser.add_argument('uz', help='z component of rotation axis')
     parser.add_argument('--period', '-p', help='period of rotation in seconds', default=10)
-    parser.add_argument('--delay', '-d', help='delay between frames in seconds', default=3e-2)
     parser.add_argument('--out', '-o', help='output file name', default=None)
     parser.add_argument('--focus', '-f', help='focal distance in the z axis', default=None)
-    parser.add_argument('--duration', help='duration of animation in seconds', default=20)
+    parser.add_argument('--duration', '-d', help='duration of animation in seconds', default=20)
+    parser.add_argument('--fps', help='number of frames per second', default=30)
     parser.add_argument('--cube-length', help='length of the side of the cube', default=1)
     parser.add_argument('--transparent', help='renders parts out of sight from focus', action='store_true')
     parser.add_argument('--perspective', help='enables perspective view from focus', action='store_true')
@@ -52,12 +52,12 @@ def draw_rotating_cube_animation(cube_length: float, cube_center: Point, config:
     if config.initial_angle != 0:
         cube.rotate(theta=config.initial_angle, axis=config.axis)
     # iterate frames
-    for _ in range(int(config.duration / config.delay)):
+    for _ in range(int(config.duration * config.fps)):
         if config.show_axis:
             am.add(axis_edge)
         am.add(cube)
         am.frame()
-        cube.rotate(theta=config.w * config.delay, axis=config.axis)
+        cube.rotate(theta=config.w * config.delay(), axis=config.axis)
     am.end()
 
 
@@ -76,7 +76,7 @@ def main():
         transparent=args.transparent, perspective=args.perspective)
     # rotation animation configurations
     animation_config = RotationAnimationConfig(
-        delay=float(args.delay), duration=float(args.duration),
+        fps=float(args.fps), duration=float(args.duration),
         draw_config=draw_config, axis=u, w=w, show_axis=args.show_axis,
         initial_angle=pi * float(args.initial_angle) / 180
     )
