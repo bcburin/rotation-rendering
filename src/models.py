@@ -172,7 +172,7 @@ class Cube(Drawable):
             for face in self.get_faces():
                 n = face.get_normal_vector(ref=self._c)
                 g = face.get_barycenter()
-                los = Point(0, 0, config.focus) - g
+                los = Point(0, 0, config.focus) - g if config.perspective else Point(0, 0, 1)  # line of sight
                 if np.dot(los.as_array(), n) > 0:
                     face_edges = face.get_edges()
                     for edge in face_edges:
