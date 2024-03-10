@@ -45,7 +45,7 @@ class Point(Drawable):
             a = array(a)[0]
         return Point(a[0].item(), a[1].item(), a[2].item())
 
-    def add_perspective(self, focus: float) -> Point:
+    def calculate_perspective_proj(self, focus: float) -> Point:
         return Point(focus * self.x / (focus - self.z), focus * self.y / (focus - self.z), 0)
     
     def draw(self, config: DrawConfig):
@@ -55,8 +55,8 @@ class Point(Drawable):
         if not config.perspective:
             config.output.write(f'{self.x} {self.y}\n')
         else:
-            p = self.add_perspective(config.focus)
-            config.output.write(f'{p.x} {p.y}')
+            proj = self.calculate_perspective_proj(config.focus)
+            config.output.write(f'{proj.x} {proj.y}')
 
 
 @dataclass
@@ -76,9 +76,9 @@ class Edge(Drawable):
         if not config.perspective:
             config.output.write(f'{self.point_a.x} {self.point_a.y} {self.point_b.x} {self.point_b.y}\n')
         else:
-            p_a = self.point_a.add_perspective(config.focus)
-            p_b = self.point_b.add_perspective(config.focus)
-            config.output.write(f'{p_a.x} {p_a.y} {p_b.x} {p_b.y}\n')
+            proj_a = self.point_a.calculate_perspective_proj(config.focus)
+            proj_b = self.point_b.calculate_perspective_proj(config.focus)
+            config.output.write(f'{proj_a.x} {proj_a.y} {proj_b.x} {proj_b.y}\n')
 
 
 @dataclass

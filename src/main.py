@@ -17,7 +17,8 @@ def create_parser():
     parser.add_argument('uz', help='z component of rotation axis')
     parser.add_argument('--period', '-p', help='period of rotation in seconds', default=10)
     parser.add_argument('--out', '-o', help='output file name', default=None)
-    parser.add_argument('--focus', '-f', help='focal distance in the z axis', default=None)
+    parser.add_argument(
+        '--focus', '-f', help='focal distance in the z axis if perspective is being used', default=None)
     parser.add_argument('--duration', '-d', help='duration of animation in seconds', default=20)
     parser.add_argument('--fps', help='number of frames per second', default=30)
     parser.add_argument('--cube-length', help='length of the side of the cube', default=1)
@@ -71,9 +72,9 @@ def main():
     # draw configurations
     draw_config = DrawConfig(
         output_name=args.out or get_default_output_name(args, u),
-        focus=float(args.cube_length) * 1000 if not args.perspective
-        else float(args.focus) or float(args.cube_length) + 2,
-        transparent=args.transparent, perspective=args.perspective)
+        focus=None if not args.perspective
+        else float(args.focus) if args.focus is not None else float(args.cube_length)*2,
+        transparent=args.transparent)
     # rotation animation configurations
     animation_config = RotationAnimationConfig(
         fps=float(args.fps), duration=float(args.duration),

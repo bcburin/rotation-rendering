@@ -10,10 +10,13 @@ from numpy import array
 @dataclass
 class DrawConfig:
     output_name: str
-    focus: float
+    focus: float | None
     transparent: bool = False
-    perspective: bool = False
     output: TextIO | None = None
+
+    @property
+    def perspective(self):
+        return self.focus is not None
 
 
 class Drawable(ABC):
