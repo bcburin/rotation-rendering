@@ -40,6 +40,9 @@ def draw_single_frame_rotated_cube_animation(cube_length: float, cube_center: Po
     cube = Cube(length=cube_length, center=cube_center)
     cube.rotate(theta=config.initial_angle, axis=config.axis)
     am.add(cube)
+    if config.show_axis:
+        axis_edge = Edge(Point.from_array(-config.axis), Point.from_array(config.axis))
+        am.add(axis_edge)
     am.commit()
     am.delay(time=config.duration)
     am.end()
