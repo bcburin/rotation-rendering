@@ -63,6 +63,7 @@ class AnimationMaker:
     def commit(self):
         for item in self._buffer:
             item.draw(config=self._config.draw_config)
+        self._buffer.clear()
 
     def frame(self):
         self.commit()
