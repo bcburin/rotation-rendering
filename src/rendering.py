@@ -15,7 +15,7 @@ class DrawConfig:
     output: TextIO | None = None
 
     @property
-    def perspective(self):
+    def perspective(self) -> bool:
         return self.focus is not None
 
 
@@ -33,7 +33,7 @@ class AnimationConfig:
     draw_config: DrawConfig
 
     @property
-    def delay(self):
+    def delay(self) -> float:
         return self.fps ** (-1)
 
 
